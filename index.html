@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Molecular Formulas Assignment</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Transitions for colors */
+        input { transition: all 0.2s ease-in-out; }
+        .input-correct { border-color: #22c55e !important; background-color: #f0fdf4 !important; }
+        .input-error { border-color: #fca5a5 !important; background-color: #fef2f2 !important; }
+        .btn-hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen text-gray-800">
+
+    <!-- App Container -->
+    <div id="app" class="max-w-4xl mx-auto py-8 px-4"></div>
+
+    <script>
+        // --- Constants & Data ---
+        const ATOMIC_MASSES = {
+            C: 12.011, H: 1.008, O: 15.999, N: 14.007, S: 32.065, Cl: 35.453
+        };
+
+        const TOLERANCE = 0.05; 
+        const STRICT_TOLERANCE = 0.002;
+        
+        // Subscript Mapping
+        const SUBSCRIPTS = { '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉' };
+        const REVERSE_SUBSCRIPTS = Object.fromEntries(Object.entries(SUBSCRIPTS).map(([k, v]) => [v, k]));
+
+        const ASSIGNMENT_DATA = [
+            {
+                id: 1, type: 'partial', title: "Problem 1: Sweet Smelling Gas", description: "Determine formula from empirical data.",
+                elements: [
+                    { symbol: 'C', atomicMass: ATOMIC_MASSES.C, count: 2 },
+                    { symbol: 'H', atomicMass: ATOMIC_MASSES.H, count: 4 },
+                    { symbol: 'O', atomicMass: ATOMIC_MASSES.O, count: 1 }
+                ],
+                empiricalFormula: "C2H4O", molecularMass: 88.0, empiricalMass: 44.053, ratio: 2, molecularFormula: "C4H8O2"
+            },
+            {
+                id: 2, type: 'full', title: "Problem 2: Acidic Compound", description: "Complex derivation with Carbon, Hydrogen, Oxygen.",
+                elements: [
+                    { symbol: 'C', mass: 2.00, atomicMass: ATOMIC_MASSES.C, moles: 0.1665 },
+                    { symbol: 'H', mass: 0.336, atomicMass: ATOMIC_MASSES.H, moles: 0.333 },
+                    { symbol: 'O', mass: 2.664, atomicMass: ATOMIC_MASSES.O, moles: 0.1665 }
+                ],
+                molecularMass: 60.05, empiricalMass: 30.026, empiricalFormula: "CH2O", ratio: 2, molecularFormula: "C2H4O2"
+            },
+            {
+                id: 3, type: 'partial', title: "Problem 3: Aromatic Ring", description: "Find the molecular formula.",
+                elements: [
+                    { symbol: 'C', atomicMass: ATOMIC_MASSES.C, count: 1 },
+                    { symbol: 'H', atomicMass: ATOMIC_MASSES.H, count: 1 }
+                ],
+                empiricalFormula: "CH", molecularMass: 78.11, empiricalMass: 13.019, ratio: 6, molecularFormula: "C6H6"
+            }
+        ];
+
+        // --- Icons (Inline SVGs) ---
+        const Icons = {
+            Beaker: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 3h15"/><path d="M6 3v16a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V3"/><path d="M6 14h12"/></svg>`,
+            Check: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+            Calculator: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="16" y1="14" x2="16" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>`,
+            ArrowRight: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+            ArrowLeft: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+            ChevronLeft: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
+            Star: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-yellow-400"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`
+        };
+
+        // --- State Management ---
+        const state = {
+            screen: 'welcome',
+            studentName: '',
+            completedProblems: [],
+            activeProblemId: null,
+            step: 0,
+            inputs: {} // Stores current inputs
+        };
+
+        // --- Helper Functions ---
+        const isCorrect = (val, target, tolerance = TOLERANCE) => {
+            // Handle string comparisons (for chemical formulas)
+            if (typeof target === 'string') {
+                // Convert subscripts in student input back to normal numbers for comparison
+                const normalizedVal = val.split('').map(c => REVERSE_SUBSCRIPTS[c] || c).join('');
+                return normalizedVal.trim().toUpperCase() === target.trim().toUpperCase();
+            }
+
+            const numVal = parseFloat(val);
+            if (isNaN(numVal)) return false;
+            return Math.abs(numVal - target) <= tolerance;
+        };
+
+        // Format chemical formulas with unicode subscripts (e.g., C2H4 -> C₂H₄)
+        const formatFormula = (formula) => {
+            if (!formula) return '';
+            return formula.replace(/[0-9]/g, c => SUBSCRIPTS[c] || c);
+        };
+
+        function init() {
+            render();
+        }
+
+        function setState(updates) {
+            Object.assign(state, updates);
+            render();
+        }
+
+        // --- Core Render Logic ---
+        function render() {
+            const app = document.getElementById('app');
+            app.innerHTML = ''; // Clear container
+
+            // Header
+            const header = document.createElement('header');
+            header.className = "mb-8 flex justify-between items-center border-b pb-4 fade-in";
+            header.innerHTML = `
+                <div class="flex items-center gap-2 text-gray-700 font-semibold">
+                    <span class="text-blue-600">${Icons.Beaker}</span>
+                    <span>Chemistry / Unit #8</span>
+                </div>
+                ${state.studentName ? `<span class="text-gray-500 font-medium">${state.studentName}</span>` : ''}
+            `;
+            app.appendChild(header);
+
+            // Main Content
+            const main = document.createElement('main');
+            main.className = "fade-in";
+            app.appendChild(main);
+
+            if (state.screen === 'welcome') renderWelcome(main);
+            else if (state.screen === 'menu') renderMenu(main);
+            else if (state.screen === 'active') renderProblem(main);
+        }
+
+        // --- Screens ---
+
+        function renderWelcome(container) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center min-h-[50vh] text-center">
+                    <div class="bg-blue-100 p-6 rounded-full mb-6 text-blue-600 w-24 h-24 flex items-center justify-center mx-auto">
+                        <span style="transform: scale(2);">${Icons.Beaker}</span>
+                    </div>
+                    <h1 class="text-4xl font-bold text-gray-800 mb-4">Molecular Formulas</h1>
+                    <p class="text-gray-600 max-w-lg mb-8 text-lg">Interactive Chemistry Assignment</p>
+                    <div class="w-full max-w-sm space-y-4 mx-auto">
+                        <input type="text" id="nameInput" placeholder="Enter your Full Name" class="w-full p-3 border-2 border-gray-200 rounded-lg text-lg focus:border-blue-500 outline-none transition-colors text-center" value="${state.studentName}">
+                        <button id="startBtn" class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white font-bold py-3 px-6 rounded-lg transition-all" ${!state.studentName ? 'disabled' : ''}>Start Assignment</button>
+                    </div>
+                </div>
+            `;
+
+            const input = document.getElementById('nameInput');
+            const btn = document.getElementById('startBtn');
+
+            input.addEventListener('input', (e) => {
+                state.studentName = e.target.value;
+                btn.disabled = !state.studentName.trim();
+            });
+
+            btn.addEventListener('click', () => {
+                if (state.studentName.trim()) setState({ screen: 'menu' });
+            });
+        }
+
+        function renderMenu(container) {
+            const allDone = state.completedProblems.length === ASSIGNMENT_DATA.length;
+            
+            let html = `
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-3xl font-bold text-gray-800">Assignment Dashboard</h2>
+                    <div class="text-gray-600 font-medium">Progress: ${state.completedProblems.length} / ${ASSIGNMENT_DATA.length}</div>
+                </div>
+                <div class="grid gap-4 mb-8">
+            `;
+
+            ASSIGNMENT_DATA.forEach(problem => {
+                const isDone = state.completedProblems.includes(problem.id);
+                const canStart = true; 
+
+                html += `
+                    <div onclick="startProblem(${problem.id})" 
+                         class="p-6 rounded-lg border-2 flex items-center justify-between transition-all cursor-pointer hover:shadow-md ${isDone ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200 hover:border-blue-400'}">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center font-bold ${isDone ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}">
+                                ${isDone ? Icons.Check : problem.id}
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg text-gray-800">${problem.title}</h3>
+                                <p class="text-gray-500 text-sm">${problem.description}</p>
+                            </div>
+                        </div>
+                        <div>
+                             ${isDone ? '<span class="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">Completed</span>' : '<span class="text-gray-400">&gt;</span>'}
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+
+            if (allDone) {
+                html += `
+                    <div class="text-center p-8 bg-blue-50 rounded-xl border border-blue-100">
+                        <div class="w-16 h-16 mx-auto mb-4">${Icons.Star}</div>
+                        <h3 class="text-2xl font-bold text-gray-800 mb-2">All Problems Completed!</h3>
+                        <p class="text-gray-600 mb-6">Great work, ${state.studentName}.</p>
+                        <div class="inline-block bg-white px-8 py-4 rounded-lg shadow-sm border border-gray-200">
+                            <div class="text-sm text-gray-500 uppercase tracking-wide font-semibold">Final Grade</div>
+                            <div class="text-4xl font-bold text-blue-600">100%</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+        }
+
+        window.startProblem = (id) => {
+            const problem = ASSIGNMENT_DATA.find(p => p.id === id);
+            
+            // Initialize inputs
+            const inputs = {};
+            if (problem.type === 'full') {
+                inputs.step1 = problem.elements.map(() => ({ numerator: '', atomicMass: '', moles: '' }));
+                inputs.step2 = problem.elements.map(() => ({ divisor: '', ratio: '' }));
+                inputs.step3 = problem.elements.map(() => ({ multiplier: '', result: '' }));
+                inputs.step3Formula = '';
+                inputs.step4 = problem.elements.map(() => ({ count: '', mass: '', total: '' }));
+                inputs.step4Sum = '';
+                inputs.step5 = { molarMass: '', empMass: '', result: '' };
+                inputs.step6Formula = '';
+            } else {
+                inputs.step1 = problem.elements.map(() => ({ count: '', mass: '', total: '' }));
+                inputs.step1Sum = '';
+                inputs.step2 = { molarMass: '', empMass: '', result: '' };
+                inputs.step3Formula = '';
+            }
+
+            setState({ screen: 'active', activeProblemId: id, step: 0, inputs: inputs });
+        };
+
+        // --- Problem Rendering Logic ---
+
+        function renderProblem(container) {
+            const data = ASSIGNMENT_DATA.find(p => p.id === state.activeProblemId);
+            
+            let html = `
+                <button onclick="setState({screen: 'menu'})" class="flex items-center gap-1 text-gray-500 hover:text-blue-600 mb-4 transition-colors text-sm">
+                    ${Icons.ChevronLeft} Back to Menu
+                </button>
+                <div class="mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">${data.title}</h2>
+                    <p class="text-gray-600">${data.description}</p>
+                </div>
+            `;
+
+            const totalSteps = data.type === 'full' ? 6 : 3;
+            const pct = Math.min(100, ((state.step + 1) / totalSteps) * 100);
+            html += `
+                <div class="w-full bg-gray-200 rounded-full h-2.5 mb-8">
+                    <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-500" style="width: ${pct}%"></div>
+                </div>
+            `;
+
+            html += `<div class="bg-white p-6 rounded-lg shadow-lg border border-gray-100 fade-in">`;
+            
+            if (data.type === 'full') {
+                html += getFullProblemHTML(data);
+            } else {
+                html += getPartialProblemHTML(data);
+            }
+
+            html += `</div>`;
+            container.innerHTML = html;
+            
+            // Re-attach validation listeners
+            attachInputListeners();
+            // Initial check to see if step is already complete (for back navigation scenarios or pre-filled)
+            checkStepCompletion();
+        }
+
+        function getFullProblemHTML(data) {
+            const step = state.step;
+            const inp = state.inputs;
+            let title = "", content = "";
+
+            if (step === 0) {
+                title = "Step 1: Convert Mass to Moles";
+                content = `<p class="text-gray-600 mb-4">Set up dimensional analysis. <strong>1 mole = Molar Mass (g)</strong>.</p><div class="grid gap-6">`;
+                
+                data.elements.forEach((el, idx) => {
+                    const row = inp.step1[idx];
+                    content += `
+                        <div class="flex flex-col md:flex-row md:items-center gap-4 p-4 bg-gray-50 rounded border shadow-sm">
+                            <div class="font-bold text-2xl w-8 text-blue-800">${el.symbol}</div>
+                            <div class="flex items-center overflow-x-auto pb-2">
+                                <div class="flex border-2 border-gray-400 rounded-sm bg-white shadow-inner">
+                                    <div class="px-4 py-2 border-r-2 border-gray-400 bg-gray-100 font-semibold text-gray-700 whitespace-nowrap flex items-center">${el.mass} g ${el.symbol}</div>
+                                    <div class="flex flex-col w-36">
+                                        <div class="h-10 border-b-2 border-gray-400 p-1 flex items-center justify-center relative">
+                                            ${renderInput(`step1-${idx}-numerator`, row.numerator, 1, 0.1, '1', true)}
+                                            <span class="ml-2 text-sm font-medium whitespace-nowrap">mol ${el.symbol}</span>
+                                        </div>
+                                        <div class="h-10 p-1 flex items-center justify-center">
+                                            ${renderInput(`step1-${idx}-atomicMass`, row.atomicMass, el.atomicMass, STRICT_TOLERANCE, 'Mass', true)}
+                                            <span class="ml-2 text-sm font-medium whitespace-nowrap">g ${el.symbol}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="text-2xl text-gray-400 mx-3">=</span>
+                                <div class="w-28">${renderInput(`step1-${idx}-moles`, row.moles, el.moles, 0.1, 'Moles')}</div>
+                                <span class="ml-2 text-gray-600 font-medium whitespace-nowrap">mol ${el.symbol}</span>
+                            </div>
+                        </div>
+                    `;
+                });
+                content += `</div><div class="text-xs text-gray-500 mt-2 italic">* Use atomic masses to the thousandths place (e.g. 1.008)</div>`;
+
+            } else if (step === 1) {
+                title = "Step 2: Determine Mole Ratios";
+                const smallest = Math.min(...data.elements.map(e => e.moles));
+                content = `<p class="text-gray-600 mb-4">Divide by the smallest moles: <strong>${smallest}</strong>.</p><div class="grid gap-4">`;
+                
+                data.elements.forEach((el, idx) => {
+                    const row = inp.step2[idx];
+                    content += `
+                        <div class="flex flex-wrap items-center gap-2 md:gap-4 p-3 bg-gray-50 rounded border">
+                            <div class="font-bold text-lg w-8">${el.symbol}</div>
+                            <span class="bg-gray-100 px-3 py-2 border rounded text-gray-500 w-24 text-center">${inp.step1[idx].moles}</span>
+                            <span class="text-gray-400">÷</span>
+                            <div class="w-24">${renderInput(`step2-${idx}-divisor`, row.divisor, smallest, 0.1, 'Smallest')}</div>
+                            <span class="text-gray-400">=</span>
+                            <div class="w-24">${renderInput(`step2-${idx}-ratio`, row.ratio, Math.round(el.moles/smallest), 0.1, 'Ratio')}</div>
+                        </div>
+                    `;
+                });
+                content += `</div>`;
+
+            } else if (step === 2) {
+                title = "Step 3 & 4: Empirical Formula";
+                content = `<p class="text-gray-600 mb-4">Calculate whole numbers and write the formula.</p><div class="grid gap-3 mb-6">`;
+                
+                data.elements.forEach((el, idx) => {
+                    const row = inp.step3[idx];
+                    const ratioVal = inp.step2[idx].ratio;
+                    const resultTarget = parseFloat(ratioVal) * 1;
+                    content += `
+                        <div class="flex items-center gap-3 p-2 bg-gray-50 rounded border">
+                            <span class="font-bold text-lg w-6">${el.symbol}</span>
+                            <span class="text-gray-400">=</span>
+                            <div class="w-16 text-center bg-gray-100 p-2 rounded border">${ratioVal}</div>
+                            <span class="text-gray-600 font-medium">x</span>
+                            <div class="w-20">${renderInput(`step3-${idx}-multiplier`, row.multiplier, 1, 0.1, '1')}</div>
+                            <span class="text-gray-400">=</span>
+                            <div class="w-20">${renderInput(`step3-${idx}-result`, row.result, resultTarget, 0.1, 'Ans')}</div>
+                        </div>
+                    `;
+                });
+
+                content += `</div><div class="flex items-center gap-4 border-t pt-4">
+                    <label class="font-bold text-gray-700">Empirical Formula:</label>
+                    <div class="w-48">${renderInput('step3Formula', inp.step3Formula, data.empiricalFormula, 0, 'e.g. C₂H₄O')}</div>
+                </div>`;
+
+            } else if (step === 3) {
+                title = "Step 5: Empirical Molar Mass";
+                content = `<p class="text-gray-600 mb-4">Calculate total mass for <strong>${formatFormula(data.empiricalFormula)}</strong>.<br>
+                <span class="text-blue-600 text-sm font-medium">Note: The given Molecular Mass is <strong>${data.molecularMass} g/mol</strong> (needed for Step 6).</span></p>
+                <div class="grid gap-2 mb-4">`;
+                const smallest = Math.min(...data.elements.map(e => e.moles));
+                
+                data.elements.forEach((el, idx) => {
+                    const row = inp.step4[idx];
+                    const expCount = Math.round(el.moles / smallest);
+                    content += `
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold w-8">${el.symbol}</span>
+                            <div class="w-20">${renderInput(`step4-${idx}-mass`, row.mass, el.atomicMass, STRICT_TOLERANCE, 'Mass')}</div>
+                            <span class="text-sm text-gray-500">g/mol</span>
+                            <span>x</span>
+                            <div class="w-16">${renderInput(`step4-${idx}-count`, row.count, expCount, 0.1, '#')}</div>
+                            <span>=</span>
+                            <div class="w-24">${renderInput(`step4-${idx}-total`, row.total, expCount * el.atomicMass, 0.1, 'Total')}</div>
+                            <span class="text-sm text-gray-500">g/mol</span>
+                        </div>
+                    `;
+                });
+
+                content += `</div><div class="flex items-center gap-2 border-t pt-4"><span class="font-bold text-gray-700 w-32 text-right">Total Mass:</span>
+                <div class="w-32">${renderInput('step4Sum', inp.step4Sum, data.empiricalMass, 0.5, 'Sum')}</div><span class="text-gray-600">g/mol</span></div>`;
+
+            } else if (step === 4) {
+                title = "Step 6: Determine Ratio";
+                const i = inp.step5;
+                content = `
+                    <p class="text-gray-600 mb-4">
+                        Divide the Given Molecular Mass (<strong>${data.molecularMass} g/mol</strong>) by the Calculated Empirical Mass (<strong>${data.empiricalMass} g/mol</strong>) to find the ratio.
+                    </p>
+                    <div class="flex flex-col md:flex-row items-center gap-4 bg-blue-50 p-4 rounded-lg">
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500 mb-1">Given Molecular Mass</span>
+                            <div class="w-32">${renderInput('step5-molarMass', i.molarMass, data.molecularMass, 0.1, 'Given')}</div>
+                        </div>
+                        <span class="text-xl text-gray-400">÷</span>
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500 mb-1">Empirical Mass</span>
+                            <div class="w-32">${renderInput('step5-empMass', i.empMass, data.empiricalMass, 0.5, 'Empirical')}</div>
+                        </div>
+                        <span class="text-xl text-gray-400">=</span>
+                        <div class="flex flex-col items-center">
+                            <span class="text-xs text-gray-500 mb-1">Result (n)</span>
+                            <div class="w-32">${renderInput('step5-result', i.result, data.ratio, 0.1, 'Ratio')}</div>
+                        </div>
+                    </div>
+                `;
+
+            } else if (step === 5) {
+                title = "Step 7 & 8: Write Molecular Formula";
+                content = `
+                    <div class="flex items-center justify-center p-8 bg-gray-50 rounded-lg">
+                        <div class="text-2xl font-mono mr-4 tracking-wider text-gray-400">(${formatFormula(data.empiricalFormula)}) x ${data.ratio} = </div>
+                        <div class="w-48">${renderInput('step6Formula', inp.step6Formula, data.molecularFormula, 0, 'C?H?O?')}</div>
+                    </div>
+                `;
+            }
+
+            return getStepTemplate(title, content, step === 5 ? 'Finish' : 'Next Step');
+        }
+
+        function getPartialProblemHTML(data) {
+            const step = state.step;
+            const inp = state.inputs;
+            let title = "", content = "";
+
+            if (step === 0) {
+                 title = "Step 5: Calculate Empirical Molar Mass";
+                content = `<p class="text-gray-600 mb-4">Calculate total mass for <strong>${formatFormula(data.empiricalFormula)}</strong>.<br>
+                <span class="text-blue-600 text-sm font-medium">Note: The given Molecular Mass is <strong>${data.molecularMass} g/mol</strong> (needed for Step 6).</span></p>
+                <div class="grid gap-2 mb-4">`;
+                
+                data.elements.forEach((el, idx) => {
+                    const row = inp.step1[idx];
+                    content += `
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold w-8">${el.symbol}</span>
+                            <div class="w-20">${renderInput(`step1-${idx}-mass`, row.mass, el.atomicMass, STRICT_TOLERANCE, 'Mass')}</div>
+                            <span class="text-sm text-gray-500">g/mol</span>
+                            <span>x</span>
+                            <div class="w-16">${renderInput(`step1-${idx}-count`, row.count, el.count, 0.1, '#')}</div>
+                            <span>=</span>
+                            <div class="w-24">${renderInput(`step1-${idx}-total`, row.total, el.count * el.atomicMass, 0.1, 'Total')}</div>
+                            <span class="text-sm text-gray-500">g/mol</span>
+                        </div>
+                    `;
+                });
+                
+                content += `</div><div class="flex items-center gap-2 border-t pt-4"><span class="font-bold text-gray-700 w-32 text-right">Total Mass:</span>
+                <div class="w-32">${renderInput('step1Sum', inp.step1Sum, data.empiricalMass, 0.5, 'Sum')}</div><span class="text-gray-600">g/mol</span></div>`;
+
+            } else if (step === 1) {
+                 title = "Step 6: Determine Ratio";
+                const i = inp.step2;
+                content = `
+                    <p class="text-gray-600 mb-4">
+                        Divide the Given Molecular Mass (<strong>${data.molecularMass} g/mol</strong>) by the Calculated Empirical Mass (<strong>${data.empiricalMass} g/mol</strong>) to find the ratio.
+                    </p>
+                    <div class="flex flex-col md:flex-row items-center gap-4 bg-blue-50 p-4 rounded-lg">
+                        <div class="flex flex-col items-center">
+                            <div class="w-32">${renderInput('step2-molarMass', i.molarMass, data.molecularMass, 0.1, 'Given')}</div>
+                            <span class="text-xs text-gray-500 mt-1">Given Mass (g/mol)</span>
+                        </div>
+                        <span class="text-xl text-gray-400">÷</span>
+                        <div class="flex flex-col items-center">
+                            <div class="w-32">${renderInput('step2-empMass', i.empMass, data.empiricalMass, 0.5, 'Empirical')}</div>
+                             <span class="text-xs text-gray-500 mt-1">Emp Mass (g/mol)</span>
+                        </div>
+                        <span class="text-xl text-gray-400">=</span>
+                        <div class="flex flex-col items-center">
+                            <div class="w-32">${renderInput('step2-result', i.result, data.ratio, 0.1, 'Ratio')}</div>
+                             <span class="text-xs text-gray-500 mt-1">Ratio (n)</span>
+                        </div>
+                    </div>
+                `;
+
+            } else if (step === 2) {
+                 title = "Step 8: Write Molecular Formula";
+                 const i = inp.step3Formula;
+                 content = `
+                     <div class="flex items-center justify-center p-8 bg-gray-50 rounded-lg">
+                         <div class="text-2xl font-mono mr-4 tracking-wider text-gray-400">(${formatFormula(data.empiricalFormula)}) x ${data.ratio} = </div>
+                         <div class="w-48">${renderInput('step3Formula', inp.step3Formula, data.molecularFormula, 0, 'Final Formula')}</div>
+                     </div>
+                 `;
+            }
+
+            return getStepTemplate(title, content, step === 2 ? 'Finish' : 'Next Step');
+        }
+
+        function getStepTemplate(title, content, btnLabel) {
+            const showBack = state.step > 0;
+            return `
+                <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <div class="bg-blue-100 p-2 rounded-lg text-blue-600">${Icons.Calculator}</div>
+                    ${title}
+                </h3>
+                <div id="step-content" class="space-y-6">${content}</div>
+                <div class="mt-6 flex justify-between items-center">
+                    ${showBack ? `
+                        <button onclick="prevStep()" class="text-gray-500 hover:text-blue-600 font-semibold flex items-center gap-2 transition-colors active:scale-95 px-4 py-2 rounded-lg hover:bg-gray-100">
+                            ${Icons.ArrowLeft} Previous Step
+                        </button>
+                    ` : '<div></div>'}
+                    
+                    <button id="nextBtn" onclick="nextStep()" class="btn-hidden bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-semibold flex items-center gap-2 transition-transform active:scale-95">
+                        ${btnLabel} ${Icons.ArrowRight}
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderInput(id, value, target, tolerance, placeholder, small = false) {
+            // Determine initial class
+            let className = 'border-gray-300';
+            let icon = '';
+            
+            // Check correctness based on initial render value
+            if (value !== '') {
+                if (isCorrect(value, target, tolerance)) {
+                    className = 'input-correct';
+                    if(!small) icon = `<div class="absolute right-2 top-2.5 text-green-600 w-4 h-4">${Icons.Check}</div>`;
+                } else {
+                    className = 'input-error';
+                }
+            }
+
+            const padding = small ? 'p-1 text-sm' : 'p-2';
+            
+            return `
+                <div class="relative inline-block w-full input-wrapper">
+                    <input type="text" data-id="${id}" value="${value}" placeholder="${placeholder}" 
+                           data-target="${target}" data-tolerance="${tolerance}"
+                           class="w-full ${padding} border rounded-md text-center outline-none focus:ring-2 focus:ring-blue-400 transition-colors ${className}" />
+                    ${icon}
+                </div>
+            `;
+        }
+
+        // --- Event Handling (Optimized for no jumping) ---
+
+        function attachInputListeners() {
+            const inputs = document.querySelectorAll('input[data-id]');
+            inputs.forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const el = e.target;
+                    
+                    // NEW: Handle Formula Subscripts
+                    if (el.dataset.id && el.dataset.id.toLowerCase().includes('formula')) {
+                        const start = el.selectionStart;
+                        const end = el.selectionEnd;
+                        const original = el.value;
+                        const converted = original.replace(/[0-9]/g, c => SUBSCRIPTS[c] || c);
+                        
+                        if (original !== converted) {
+                            el.value = converted;
+                            // Restore cursor
+                            el.setSelectionRange(start, end);
+                        }
+                    }
+
+                    const val = el.value;
+                    const target = el.dataset.target; // dataset values are strings
+                    const tol = parseFloat(el.dataset.tolerance);
+
+                    // 1. Update State
+                    const path = el.getAttribute('data-id').split('-');
+                    let stateTarget = state.inputs;
+                    if (path.length === 1) stateTarget[path[0]] = val;
+                    else if (path.length === 2) stateTarget[path[0]][path[1]] = val;
+                    else if (path.length === 3) stateTarget[path[0]][parseInt(path[1])][path[2]] = val;
+
+                    // 2. Visual Validation (Direct DOM manipulation)
+                    const parent = el.closest('.input-wrapper');
+                    // Remove existing icon
+                    const oldIcon = parent.querySelector('.absolute');
+                    if(oldIcon) oldIcon.remove();
+
+                    // Check string target or numeric target
+                    let correct = false;
+                    // Determine if target is a number or string
+                    if (isNaN(parseFloat(target))) {
+                         correct = isCorrect(val, target, 0);
+                    } else {
+                         correct = isCorrect(val, parseFloat(target), tol);
+                    }
+
+                    if (val === '') {
+                        el.className = el.className.replace(/input-correct|input-error/g, 'border-gray-300');
+                    } else if (correct) {
+                        el.classList.remove('border-gray-300', 'input-error');
+                        el.classList.add('input-correct');
+                        // Add icon if not small
+                        if (!el.classList.contains('p-1')) {
+                            const iconDiv = document.createElement('div');
+                            iconDiv.className = "absolute right-2 top-2.5 text-green-600 w-4 h-4";
+                            iconDiv.innerHTML = Icons.Check;
+                            parent.appendChild(iconDiv);
+                        }
+                    } else {
+                        el.classList.remove('border-gray-300', 'input-correct');
+                        el.classList.add('input-error');
+                    }
+
+                    // 3. Check for Step Completion
+                    checkStepCompletion();
+                });
+            });
+        }
+
+        function checkStepCompletion() {
+            const inputs = document.querySelectorAll('input[data-id]');
+            let allCorrect = true;
+            inputs.forEach(input => {
+                if (!input.classList.contains('input-correct')) {
+                    allCorrect = false;
+                }
+            });
+
+            const btn = document.getElementById('nextBtn');
+            if (btn) {
+                if (allCorrect && inputs.length > 0) {
+                    btn.classList.remove('btn-hidden');
+                } else {
+                    btn.classList.add('btn-hidden');
+                }
+            }
+        }
+
+        window.nextStep = () => {
+            const data = ASSIGNMENT_DATA.find(p => p.id === state.activeProblemId);
+            const totalSteps = data.type === 'full' ? 6 : 3;
+            
+            if (state.step < totalSteps - 1) {
+                state.step++;
+                render();
+            } else {
+                // Complete
+                if (!state.completedProblems.includes(state.activeProblemId)) {
+                    state.completedProblems.push(state.activeProblemId);
+                }
+                setState({ screen: 'menu' });
+            }
+        };
+
+        window.prevStep = () => {
+            if (state.step > 0) {
+                state.step--;
+                render();
+            }
+        };
+
+        // --- Start App ---
+        init();
+
+    </script>
+</body>
+</html>
